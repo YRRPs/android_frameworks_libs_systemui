@@ -24,6 +24,7 @@ import android.graphics.Color;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
@@ -47,6 +48,13 @@ public final class CustomThemeContract {
     public static final String KEY_NEUTRAL = "neutral";
 
     private static final Pattern RGB_PATTERN = Pattern.compile("(?i)[0-9a-f]{6}");
+    private static final Set<String> LEGACY_COLOR_KEYS =
+            Set.of(
+                    "android.theme.customization.system_palette",
+                    "android.theme.customization.accent_color",
+                    "android.theme.customization.dynamic_color",
+                    "android.theme.customization.color_index",
+                    "android.theme.customization.color_both");
     private static final Set<Integer> SUPPORTED_STYLES =
             Set.of(
                     ThemeStyle.TONAL_SPOT,
@@ -114,10 +122,15 @@ public final class CustomThemeContract {
         }
     }
 
-    /** Serializes a valid active theme into the complete customization setting shape. */
+    /** Merges a valid active theme into existing customization state. */
     @NonNull
-    public static JSONObject serialize(@NonNull ActiveTheme theme) {
+    public static JSONObject serialize(
+            @NonNull ActiveTheme theme, @NonNull JSONObject existingRoot) {
         try {
+            JSONObject root = copy(existingRoot);
+            for (String key : LEGACY_COLOR_KEYS) {
+                root.remove(key);
+            }
             JSONObject custom =
                     new JSONObject()
                             .put(KEY_VERSION, VERSION_1)
@@ -129,13 +142,22 @@ public final class CustomThemeContract {
                                     theme.isSeparateDark()
                                             ? serializeSeeds(theme.getDarkSeeds())
                                             : JSONObject.NULL);
-            return new JSONObject()
-                    .put(KEY_COLOR_SOURCE, COLOR_SOURCE_CUSTOM_THEME)
+            return root.put(KEY_COLOR_SOURCE, COLOR_SOURCE_CUSTOM_THEME)
                     .put(KEY_THEME_STYLE, ThemeStyle.name(theme.getStyle()))
                     .put(KEY_CUSTOM_THEME, custom);
         } catch (JSONException exception) {
             throw new IllegalStateException("Failed to serialize custom theme", exception);
         }
+    }
+
+    private static JSONObject copy(JSONObject source) throws JSONException {
+        JSONObject result = new JSONObject();
+        Iterator<String> keys = source.keys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            result.put(key, source.get(key));
+        }
+        return result;
     }
 
     @ColorInt

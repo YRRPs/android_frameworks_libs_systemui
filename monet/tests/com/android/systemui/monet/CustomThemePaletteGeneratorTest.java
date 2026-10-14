@@ -18,6 +18,7 @@ package com.android.systemui.monet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertThrows;
 
 import android.content.theming.ThemeStyle;
@@ -95,12 +96,29 @@ public final class CustomThemePaletteGeneratorTest {
     }
 
     @Test
+    public void separateGenerations_doNotShareErrorPaletteCache() {
+        CustomThemePalette first = generate(BASE);
+        CustomThemePalette second = generate(BASE);
+
+        assertNotSame(first.getLightScheme().errorPalette, second.getLightScheme().errorPalette);
+    }
+
+    @Test
     public void generatedMaps_areUnmodifiable() {
         CustomThemePalette palette = generate(BASE);
 
         assertThrows(
                 UnsupportedOperationException.class,
                 () -> palette.getLightAccentColors().put("accent1_500", 0));
+    }
+
+    @Test
+    public void nullLightSeeds_areRejectedAtBoundary() {
+        assertThrows(
+                NullPointerException.class,
+                () ->
+                        CustomThemePaletteGenerator.generate(
+                                null, null, false, ThemeStyle.VIBRANT, 0.0));
     }
 
     @Test

@@ -58,7 +58,7 @@ public final class CustomThemeContractTest {
                 new CustomThemeContract.ActiveTheme(
                         THEME_ID, ThemeStyle.VIBRANT, false, LIGHT_SEEDS, null);
 
-        JSONObject serialized = CustomThemeContract.serialize(input);
+        JSONObject serialized = CustomThemeContract.serialize(input, new JSONObject());
         CustomThemeContract.ParseResult parsed = CustomThemeContract.parse(serialized);
 
         assertTrue(serialized.toString().contains("B69CFF"));
@@ -75,7 +75,8 @@ public final class CustomThemeContractTest {
                         THEME_ID, ThemeStyle.EXPRESSIVE, true, LIGHT_SEEDS, DARK_SEEDS);
 
         CustomThemeContract.ParseResult parsed =
-                CustomThemeContract.parse(CustomThemeContract.serialize(input));
+                CustomThemeContract.parse(
+                        CustomThemeContract.serialize(input, new JSONObject()));
 
         assertEquals(CustomThemeContract.Status.VALID, parsed.getStatus());
         assertEquals(DARK_SEEDS, parsed.getTheme().getDarkSeeds());
@@ -130,6 +131,26 @@ public final class CustomThemeContractTest {
     }
 
     @Test
+    public void serialize_preservesUnrelatedOverlaysAndRemovesLegacyColorFields() throws Exception {
+        JSONObject existing =
+                new JSONObject()
+                        .put("android.theme.customization.font", "com.example.font")
+                        .put("android.theme.customization.system_palette", "112233")
+                        .put("android.theme.customization.accent_color", "112233");
+        CustomThemeContract.ActiveTheme theme =
+                new CustomThemeContract.ActiveTheme(
+                        THEME_ID, ThemeStyle.VIBRANT, false, LIGHT_SEEDS, null);
+
+        JSONObject serialized = CustomThemeContract.serialize(theme, existing);
+
+        assertEquals(
+                "com.example.font",
+                serialized.getString("android.theme.customization.font"));
+        assertTrue(!serialized.has("android.theme.customization.system_palette"));
+        assertTrue(!serialized.has("android.theme.customization.accent_color"));
+    }
+
+    @Test
     public void parse_unknownFields_areIgnored() throws Exception {
         JSONObject root = validRoot().put("future_root", true);
         root.getJSONObject(CustomThemeContract.KEY_CUSTOM_THEME).put("future_custom", 12);
@@ -142,6 +163,7 @@ public final class CustomThemeContractTest {
     private static JSONObject validRoot() {
         return CustomThemeContract.serialize(
                 new CustomThemeContract.ActiveTheme(
-                        THEME_ID, ThemeStyle.VIBRANT, false, LIGHT_SEEDS, null));
+                        THEME_ID, ThemeStyle.VIBRANT, false, LIGHT_SEEDS, null),
+                new JSONObject());
     }
 }

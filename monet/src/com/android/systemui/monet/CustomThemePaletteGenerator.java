@@ -15,6 +15,7 @@
  */
 package com.android.systemui.monet;
 
+import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.theming.ThemeStyle;
 
@@ -28,23 +29,24 @@ import com.google.ux.material.libmonet.scheme.SchemeRainbow;
 import com.google.ux.material.libmonet.scheme.SchemeTonalSpot;
 import com.google.ux.material.libmonet.scheme.SchemeVibrant;
 
+import java.util.Objects;
 import java.util.Optional;
 
 /** Generates complete Material resource maps from four independent seed families. */
 public final class CustomThemePaletteGenerator {
     private static final double MIN_CONTRAST = -1.0;
     private static final double MAX_CONTRAST = 1.0;
-    private static final TonalPalette ERROR_PALETTE =
-            TonalPalette.fromHueAndChroma(25.0, 84.0);
 
     private CustomThemePaletteGenerator() {}
 
+    @NonNull
     public static CustomThemePalette generate(
-            CustomThemeSeeds lightSeeds,
+            @NonNull CustomThemeSeeds lightSeeds,
             @Nullable CustomThemeSeeds darkSeeds,
             boolean separateDark,
             @ThemeStyle.Type int style,
             double contrastLevel) {
+        Objects.requireNonNull(lightSeeds, "lightSeeds");
         CustomThemeContract.requireSupportedStyle(style);
         requireValidContrast(contrastLevel);
         if (separateDark != (darkSeeds != null)) {
@@ -79,7 +81,7 @@ public final class CustomThemePaletteGenerator {
                 tertiary.tertiaryPalette,
                 neutral.neutralPalette,
                 neutral.neutralVariantPalette,
-                Optional.of(ERROR_PALETTE));
+                Optional.of(TonalPalette.fromHueAndChroma(25.0, 84.0)));
     }
 
     private static DynamicScheme createScheme(
